@@ -1,6 +1,42 @@
-/* public/css/styles.css */
 #map {
     width: 100%; /* Full width */
     height: 0; /* Initially set to 0 */
     padding-top: 50%; /* Aspect ratio of 2:1 */
 }
+
+.slider-container {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Adjust the gap as needed */
+}
+
+.slider-container label {
+    margin-right: 10px;
+}
+
+.slider-container #radiusValue {
+    font-weight: bold;
+}
+
+.slider-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
+}
+
+.material-symbols-outlined {
+    color: green;
+    font-size: 36px;
+    font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 20;
+}
+
+/* Green Marker Style */
+.green-marker .material-symbols-outlined {
+    font-variation-settings: 'FILL' 1, 'wght' 300, 'GRAD' 0, 'opsz' 36;
+}
+
+/* Grey Marker Style */
+.grey-marker .material-symbols-outlined {
+    color: grey;
+}
+
