@@ -1,0 +1,6 @@
+/* public/css/styles.css */
+#map {
+    width: 100%; /* Full width */
+    height: 0; /* Initially set to 0 */
+    padding-top: 50%; /* Aspect ratio of 2:1 */
+}

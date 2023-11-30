@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Restaurant Map</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />
+    <style>
+        #map { height: 400px; }
+    </style>
+</head>
+<body>
+    <div style="display: flex;">
+        <!-- Search Widgets Container -->
+        <div style="padding: 20px;">
+            <input type="text" id="locationSearch" placeholder="Enter a location">
+            <button onclick="searchLocation()">Search</button>
+        </div>
+
+        <!-- Map Container -->
+        <div id="map" style="flex-grow: 1;"></div>
+    </div>
+    <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
+    <script src="/js/main.js"></script>
+</body>
+</html>
