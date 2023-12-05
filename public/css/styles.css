@@ -25,13 +25,13 @@
 }
 
 .material-symbols-outlined {
-    color: green;
     font-size: 36px;
     font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 20;
 }
 
 /* Green Marker Style */
 .green-marker .material-symbols-outlined {
+    color: green;
     font-variation-settings: 'FILL' 1, 'wght' 300, 'GRAD' 0, 'opsz' 36;
 }
 

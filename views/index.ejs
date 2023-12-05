@@ -5,44 +5,96 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <link rel="stylesheet" href="/css/styles.css">
-    <style>
-        #map { height: 400px; }
-    </style>
+
+    <!-- Include Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Include Bootstrap JS and its dependencies -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
 </head>
 <body>
     <div style="display: flex;">
-        <!-- Search Widgets Container -->
+        <!-- Left Container for Widgets -->
         <div style="padding: 20px;">
-            <div class="slider-container">
-                <label for="radiusSlider">Radius (meters):</label>
-                <input type="range" id="radiusSlider" min="100" max="5000" value="500" step="100" oninput="updateRadiusValue(this.value)">
-                <span id="radiusValue">400</span>
-            </div>
-            
-            <!-- Slider Labels -->
-            <div class="slider-labels">
-                <span>100</span> <!-- Minimum Value -->
-                <span>5000</span> <!-- Maximum Value -->
-            </div>
-
-            <br>
-            <div>
-                <label for="cuisineSelect">Cuisine:</label>
-                <select id="cuisineSelect" onchange="filterCuisine()">
-                    <option value="">Select Cuisine</option>
-                    <!-- Cuisine options will be populated dynamically -->
-                </select>
+            <!-- Find Widgets -->
+            <div id="findWidgets">
+                <div id="locationBox">
+                    <input type="text" id="locationInput" placeholder="Enter a location" onkeypress="handleKeyPress('changeMapLocation', event)">
+                    <button id="locationButton" onclick="changeMapLocation()">Go</button>
+                </div>
+                <hr>            
+                <div class="slider-container">
+                    <label for="findRadiusSlider">Radius (meters):</label>
+                    <input type="range" id="findRadiusSlider" min="100" max="5000" value="400" step="100" oninput="updateFindRadiusValue(this.value)">
+                    <span id="findRadius">400</span>
+                </div>
             </div>
 
-            <br>                       
-            <input type="text" id="locationSearch" placeholder="Enter a location">
-            <button onclick="searchLocation()">Search</button>
+            <!-- Review Widgets (initially hidden) -->
+            <div id="reviewWidgets" style="display: none;">
+                <div id="selectionParameters">
+                    <h4>Selection Parameters</h4>
+                    <div class="slider-container">
+                        <label for="reviewRadiusSlider">Radius (meters):</label>
+                        <input type="range" id="reviewRadiusSlider" min="100" max="5000" value="1000" step="100" oninput="updateReviewRadiusValue(this.value)">
+                        <span id="reviewRadius">1000</span>
+                    </div>
+                    <label for="numSelectionsPerClick">Number of Selections per Click:</label>
+                    <input type="number" id="numSelectionsPerClick" value="500">
+                    <br>
+                    <div id="selectedContainer">
+                        <label for="totalSelected">Total Selected:</label>
+                        <div id="selectedCountValue">0</div>
+                        <button id="resetSelection" onclick="resetSelection()">Reset Selection</button>    
+                    </div>
+                </div>
+                <hr>
+                <div id="reviewParameters">
+                    <h4>Review Parameters</h4>
+                    <label>Average Reviews per Restaurant:</label>
+                    <input type="number" id="averageReviews" value="5">
+                    <br>
+                    <label>Standard Deviation:</label>
+                    <input type="number" id="stdDevReviews" value="2">
+                    <br>
+                </div>
+                <button onclick="generateReviews()">Generate Reviews</button>
+            </div>
+
+            <hr>
+            <!-- Toggle Mode Button -->
+            <button id="modeToggle" onclick="toggleMode()">Enter Review Mode</button>
+
         </div>
         
         <!-- Map Container -->
         <div id="map" style="flex-grow: 1;"></div>
     </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="progressModal" tabindex="-1" role="dialog" aria-labelledby="progressModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+            <h5 class="modal-title" id="progressModalLabel">Progress</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+            </div>
+            <div class="modal-body">
+            <p id="progressText">Initializing...</p>
+            </div>
+        </div>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
-    <script src="/js/main.js"></script>
+    <script src="/js/map.js"></script>
+    <script src="/js/find.js"></script>
+    <script src="/js/index.js"></script>
+    <script src="/js/review.js"></script>
 </body>
 </html>
