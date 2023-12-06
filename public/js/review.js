@@ -54,17 +54,18 @@ async function generateReviews() {
         var amenity = selectedAmenities[i];
         showProgressModal(`Generating reviews for ${amenity.name} (${i + 1}/${selectedAmenities.length})`);
 
+        // Retrieve the city name
+        const cityName = await mapUtils.getCityName();
+
+        const enhancedAmenity = {...amenity, locality_name: cityName };
+                
         await fetch('/generate-reviews', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                location: mapUtils.getCityName(),
-                restaurant: {
-                    name: amenity.name,
-                    cuisine: amenity.metadata.cuisine || 'Unknown'
-                },
+                amenity: enhancedAmenity,
                 average: averageReviews,
                 stdDev: stdDevReviews
             })
