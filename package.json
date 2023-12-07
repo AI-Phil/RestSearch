@@ -11,9 +11,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "cassandra-driver": "^4.7.2",
     "dotenv": "^16.3.1",
     "ejs": "^3.1.9",
     "express": "^4.18.2",
-    "openai": "^4.20.1"
+    "langchain": "^0.0.202",
+    "openai": "^4.20.1",
+    "uuid": "^9.0.1"
   }
 }

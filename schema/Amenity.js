@@ -4,7 +4,8 @@ const AmenitySchema = {
     name: 'string',
     lat: 'number',
     lon: 'number',
-    metadata: 'object'
+    metadata: 'object',
+    reviews: 'object'
 };
 
 if (typeof module !== 'undefined') {

@@ -1,7 +1,9 @@
 const { validateEnvVariables, normalDistribution } = require('./common.js');
+const { save: saveAstra } = require('./astraAmenityReviews');
 const { OpenAI } = require("openai");
 const fs = require("fs");
 const { promisify } = require("util");
+const { v4: uuidv4 } = require('uuid');
 
 validateEnvVariables([
     'OPENAI_API_KEY',
@@ -51,8 +53,16 @@ async function generateAndWriteReviews(selectedAmenities, average, stdDev) {
         if (reviewContent) {
             try {
                 const parsedReviews = JSON.parse(reviewContent);
+
+                if (parsedReviews.reviews && Array.isArray(parsedReviews.reviews)) {
+                    parsedReviews.reviews.forEach(review => {
+                        review.id = uuidv4(); 
+                    });
+                }
+
                 const filename = `reviews/${amenity.id}.json`;
                 await writeFileAsync(filename, JSON.stringify(parsedReviews, null, 2));
+                await saveAstra({ ...amenity, reviews: parsedReviews.reviews });
             } catch (parseError) {
                 console.error('Error parsing review content:', parseError);
             }
