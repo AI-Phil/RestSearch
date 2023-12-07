@@ -22,13 +22,13 @@
             <!-- Find Widgets -->
             <div id="findWidgets">
                 <div id="locationBox">
-                    <input type="text" id="locationInput" placeholder="Enter a location" onkeypress="handleKeyPress('changeMapLocation', event)">
-                    <button id="locationButton" onclick="changeMapLocation()">Go</button>
+                    <input type="text" id="locationInput" placeholder="Enter a location">
+                    <button id="locationButton">Go</button>
                 </div>
                 <hr>            
                 <div class="slider-container">
                     <label for="findRadiusSlider">Radius (meters):</label>
-                    <input type="range" id="findRadiusSlider" min="100" max="5000" value="400" step="100" oninput="updateFindRadiusValue(this.value)">
+                    <input type="range" id="findRadiusSlider" min="100" max="5000" value="400" step="100">
                     <span id="findRadius">400</span>
                 </div>
             </div>
@@ -39,7 +39,7 @@
                     <h4>Selection Parameters</h4>
                     <div class="slider-container">
                         <label for="reviewRadiusSlider">Radius (meters):</label>
-                        <input type="range" id="reviewRadiusSlider" min="100" max="5000" value="1000" step="100" oninput="updateReviewRadiusValue(this.value)">
+                        <input type="range" id="reviewRadiusSlider" min="100" max="5000" value="1000" step="100">
                         <span id="reviewRadius">1000</span>
                     </div>
                     <label for="numSelectionsPerClick">Number of Selections per Click:</label>
@@ -61,12 +61,12 @@
                     <input type="number" id="stdDevReviews" value="2">
                     <br>
                 </div>
-                <button onclick="generateReviews()">Generate Reviews</button>
+                <button id="generateReviewsButton">Generate Reviews</button>
             </div>
 
             <hr>
             <!-- Toggle Mode Button -->
-            <button id="modeToggle" onclick="toggleMode()">Enter Review Mode</button>
+            <button id="modeToggle">Enter Review Mode</button>
 
         </div>
         
@@ -92,10 +92,6 @@
     </div>
 
     <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
-    <script src="/schema/Amenity.js"></script>
-    <script src="/js/map.js"></script>
-    <script src="/js/find.js"></script>
-    <script src="/js/index.js"></script>
-    <script src="/js/review.js"></script>
+    <script src="/js/bundle.js"></script>
 </body>
 </html>

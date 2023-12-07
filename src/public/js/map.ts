@@ -1,22 +1,30 @@
-var default_zoom = 16;
-var default_lat = 53.3416362; // Grafton Street, Dublin, Ireland
-var default_lon = -6.2627662;
+import L, { DivIcon } from 'leaflet';
+import { Amenity } from '../../schema/Amenity';
+import 'leaflet/dist/leaflet.css';
 
-/**
- * Amenity object schema
- * @typedef {Object} Amenity
- * @property {string} id - Unique identifier for the amenity
- * @property {string} name - Name of the amenity
- * @property {number} lat - Latitude
- * @property {number} lon - Longitude
- * @property {string} type - Type of the amenity (e.g., 'restaurant')
- * @property {Object} metadata - Additional information specific to the amenity type 
-*/
+type MarkerObject = {
+    marker: L.Marker;
+    amenity: Amenity;
+};
 
-var map;
-var markers = {};
-var lastClickCoords; 
-var mapInitializationPromise;
+interface OsmElement {
+    id: number;
+    lat: number;
+    lon: number;
+    tags: {
+        name: string;
+        [key: string]: string;
+    };
+}
+
+let default_zoom = 16;
+let default_lat = 53.3416362; // Grafton Street, Dublin, Ireland
+let default_lon = -6.2627662;
+let default_amenity = "restaurant";
+let map: L.Map;
+let markers: Record<string, MarkerObject> = {};
+let lastClickCoords: L.LatLng;
+let mapInitializationPromise: Promise<L.Map>;
 
 var greenIcon = L.divIcon({
     className: 'green-marker',
@@ -30,10 +38,10 @@ var greyIcon = L.divIcon({
     iconAnchor: [12, 24]
 });
 
-function initMap(lat = default_lat, lon = default_lon, zoom = default_zoom) {
+function initMap(lat = default_lat, lon = default_lon, zoom = default_zoom): Promise<L.Map> {
     mapInitializationPromise = new Promise((resolve, reject) => {
         try {
-            resetMap(lat, lon, zoom)
+            resetMap(lat, lon, zoom);
 
             map.on('click', function(e) {
                 lastClickCoords = e.latlng;
@@ -44,6 +52,8 @@ function initMap(lat = default_lat, lon = default_lon, zoom = default_zoom) {
             reject(error);
         }
     });
+
+    return mapInitializationPromise;
 }
 
 function resetMap(lat = default_lat, lon = default_lon, zoom = default_zoom) {
@@ -62,7 +72,19 @@ function resetMap(lat = default_lat, lon = default_lon, zoom = default_zoom) {
     }
 }
 
-async function moveToLocation(locationName) {
+function changeMapLocation(): void {
+    const locationInput = document.getElementById('locationInput') as HTMLInputElement;
+    const locationName = locationInput.value;
+    if (locationName) {
+        moveToLocation(locationName)
+            .then(() => console.log("Map moved to:", locationName))
+            .catch(error => console.error('Error moving map:', error));
+    } else {
+        alert("Please enter a location name.");
+    }
+}
+
+async function moveToLocation(locationName: string) {
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationName)}`;
 
     try {
@@ -82,7 +104,7 @@ async function moveToLocation(locationName) {
     }
 }
 
-async function getAmenitiesWithinRadius(radiusInMeters, type = default_amenity, closest_n = 1000) {
+async function getAmenitiesWithinRadius(radiusInMeters: number, type: string = default_amenity, closest_n = 1000): Promise<Amenity[]> {
     if (!lastClickCoords) {
         console.error("No location has been clicked on the map.");
         return [];
@@ -96,10 +118,9 @@ async function getAmenitiesWithinRadius(radiusInMeters, type = default_amenity, 
 
     try {
         const response = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
-        const data = await response.json();
+        const data: { elements: OsmElement[] } = await response.json();
 
-        // Add distance to each amenity and filter out those without a name
-        var amenities = data.elements
+        const amenities: Amenity[] = data.elements
             .filter(element => element.tags.name)
             .map(element => ({
                 id: element.id.toString(),
@@ -108,28 +129,20 @@ async function getAmenitiesWithinRadius(radiusInMeters, type = default_amenity, 
                 lon: element.lon,
                 type: type,
                 metadata: element.tags,
-                distance: getDistanceFromLatLonInKm(element.lat, element.lon, lastClickCoords.lat, lastClickCoords.lng)
-            }));
+                reviews: [],
+            }))
+            .sort((a, b) => getDistanceFromLatLonInKm(a.lat, a.lon, lastClickCoords.lat, lastClickCoords.lng) - 
+                            getDistanceFromLatLonInKm(b.lat, b.lon, lastClickCoords.lat, lastClickCoords.lng))
+            .slice(0, closest_n);
 
-        // Sort amenities by distance
-        amenities.sort((a, b) => a.distance - b.distance);
-
-        // Keep only the closest 'closest_n' amenities
-        return amenities.slice(0, closest_n).map(amenity => ({
-            id: amenity.id,
-            name: amenity.name,
-            lat: amenity.lat,
-            lon: amenity.lon,
-            type: amenity.type,
-            metadata: amenity.metadata
-        }));
+        return amenities;
     } catch (error) {
         console.error('Error fetching amenities:', error);
         return [];
     }
 }
 
-function addMarker(amenity, icon) {
+function addMarker(amenity: Amenity, icon: DivIcon) {
     if (!icon) {
         console.error("Icon not provided for marker");
         return;
@@ -157,11 +170,11 @@ function addMarker(amenity, icon) {
     markers[amenity.id] = { marker: marker, amenity: amenity };
 }
 
-function addMarkers(amenities, icon) {
+function addMarkers(amenities: Amenity[], icon: DivIcon) {
     amenities.forEach(amenity => addMarker(amenity, icon));
 }
 
-function getAmenitiesWithIcon(icon) {
+function getAmenitiesWithIcon(icon: DivIcon): Amenity[] {
     return Object.values(markers)
                  .filter(markerObj => markerObj.marker.options.icon === icon)
                  .map(markerObj => markerObj.amenity);
@@ -176,7 +189,7 @@ function clearAllMarkers() {
     markers = {};
 }
 
-function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
     var R = 6371; // Radius of the earth in km
     var dLat = deg2rad(lat2 - lat1);
     var dLon = deg2rad(lon2 - lon1); 
@@ -190,14 +203,14 @@ function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
     return d;
 }
 
-function deg2rad(deg) {
+function deg2rad(deg: number): number {
     return deg * (Math.PI/180)
 }
 
-async function getCityName() {
+async function getCityName(): Promise<string> {
     if (!lastClickCoords) {
         console.error("No location has been clicked on the map.");
-        return [];
+        throw new Error("Location not set");
     }
 
     const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lastClickCoords.lat}&lon=${lastClickCoords.lng}`;
@@ -206,21 +219,21 @@ async function getCityName() {
         const response = await fetch(url);
         const data = await response.json();
 
-        if(data.address) {
-            return data.address.city || data.address.town || data.address.village;
+        if (data.address) {
+            return data.address.city || data.address.town || data.address.village || "Unknown Location";
         } else {
             return "Unknown Location";
         }
     } catch (error) {
         console.error('Error fetching location:', error);
-        return "Error fetching location";
+        throw new Error("Error fetching location");
     }
 }
 
-window.mapUtils = {
+export const mapUtils = {
     awaitMapInitialization: () => mapInitializationPromise,
     initMap,
-    moveToLocation,
+    changeMapLocation,
     getAmenitiesWithinRadius,
     clearAllMarkers,
     addMarkers,
@@ -229,10 +242,6 @@ window.mapUtils = {
     },
     getAmenitiesWithIcon,
     getCityName,
-    greenIcon: greenIcon,
-    greyIcon: greyIcon
+    greenIcon,
+    greyIcon
 };
-
-// Initialize the map with default settings
-initMap();
-
