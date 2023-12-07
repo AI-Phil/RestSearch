@@ -1,30 +1,34 @@
-const { validateEnvVariables, normalDistribution } = require('./common.js');
-const { save: saveAstra } = require('./astraAmenityReviews');
-const { OpenAI } = require("openai");
-const fs = require("fs");
-const { promisify } = require("util");
-const { v4: uuidv4 } = require('uuid');
+
+import { Amenity } from '../schema/Amenity';
+import { Review } from '../schema/Review';
+import { validateEnvVariables, normalDistribution } from './common';
+import { save as astraSave } from './astraAmenityReviews';
+import { OpenAI } from "openai";
+import fs from "fs";
+import { promisify } from "util";
+import { v4 as uuidv4 } from 'uuid';
 
 validateEnvVariables([
     'OPENAI_API_KEY',
     'OPENAI_CHAT_MODEL',
-  ]);
+]);
 
 const writeFileAsync = promisify(fs.writeFile);
 const mkdirAsync = promisify(fs.mkdir);
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-async function generateAndWriteReviews(selectedAmenities, average, stdDev) {
+interface ParsedReviews {
+    reviews: Review[];
+}
+
+async function generateAndWriteReviews(selectedAmenities: Amenity[], average: number, stdDev: number) {
     await mkdirAsync("reviews", { recursive: true });
 
-    const reviewData = [];
-
     for (const amenity of selectedAmenities) {
-        // console.log("amenity", amenity);
         const numReviews = Math.max(1, Math.round(normalDistribution(average, stdDev)));
         const response = await openai.chat.completions.create({
-            model: process.env.OPENAI_CHAT_MODEL,
+            model: process.env.OPENAI_CHAT_MODEL as string,
             messages: [
                 {
                     "role": "system",
@@ -52,7 +56,7 @@ async function generateAndWriteReviews(selectedAmenities, average, stdDev) {
 
         if (reviewContent) {
             try {
-                const parsedReviews = JSON.parse(reviewContent);
+                const parsedReviews: ParsedReviews = JSON.parse(reviewContent);
 
                 if (parsedReviews.reviews && Array.isArray(parsedReviews.reviews)) {
                     parsedReviews.reviews.forEach(review => {
@@ -62,7 +66,7 @@ async function generateAndWriteReviews(selectedAmenities, average, stdDev) {
 
                 const filename = `reviews/${amenity.id}.json`;
                 await writeFileAsync(filename, JSON.stringify(parsedReviews, null, 2));
-                await saveAstra({ ...amenity, reviews: parsedReviews.reviews });
+                await astraSave({ ...amenity, reviews: parsedReviews.reviews });
             } catch (parseError) {
                 console.error('Error parsing review content:', parseError);
             }
@@ -72,4 +76,4 @@ async function generateAndWriteReviews(selectedAmenities, average, stdDev) {
     }
 }
 
-module.exports = generateAndWriteReviews;
+export default generateAndWriteReviews;

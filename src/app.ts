@@ -1,19 +1,22 @@
-require('dotenv').config();
-const express = require('express');
-const generateAndWriteReviews = require('./api/reviewGenerator');
+import path from 'path';
+import dotenv from 'dotenv';
+dotenv.config();
+import express, { Request, Response } from 'express';
+import generateAndWriteReviews from './api/reviewGenerator';
 const app = express();
 const port = 3000;
 
-app.use(express.static('public')); 
-app.use('/schema', express.static('schema'));
-app.use(express.json()); 
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/schema', express.static(path.join(__dirname, 'schema')));
+app.set('views', path.join(__dirname, 'views'));
+app.use(express.json());
 app.set('view engine', 'ejs');
 
-app.get('/', (req, res) => {
+app.get('/', (req: Request, res: Response) => {
     res.render('index');
 });
 
-app.post('/generate-reviews', async (req, res) => {
+app.post('/generate-reviews', async (req: Request, res: Response) => {
     try {
         const { amenity, average, stdDev } = req.body;
 
