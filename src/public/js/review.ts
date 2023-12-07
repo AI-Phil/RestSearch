@@ -8,10 +8,9 @@ let selectedAmenities: Amenity[] = [];
 function attachReviewFunctionality(): void {
     mapUtils.map.on('click', async function(e: L.LeafletMouseEvent) {
         if (getCurrentMode() === 'review') {
-            const radiusSlider = document.getElementById('reviewRadiusSlider') as HTMLInputElement;
-            const closestNSlider = document.getElementById('numSelectionsPerClick') as HTMLInputElement;
-            const radius = parseInt(radiusSlider.value, 10);
-            const closestN = parseInt(closestNSlider.value, 10);
+            const closestNInput = document.getElementById('numSelectionsPerClick') as HTMLInputElement;
+            const radius = parseInt(reviewRadiusSlider.value, 10);
+            const closestN = parseInt(closestNInput.value, 10);
             try {
                 const amenities = await mapUtils.getAmenitiesWithinRadius(radius, 'restaurant', closestN);
                 mapUtils.addMarkers(amenities, mapUtils.greenIcon);
@@ -21,6 +20,16 @@ function attachReviewFunctionality(): void {
             }
         }
     });
+
+    const reviewRadiusSlider = document.getElementById('reviewRadiusSlider') as HTMLInputElement;
+    if (reviewRadiusSlider) {
+        reviewRadiusSlider.oninput = () => {
+            updateReviewRadiusValue(reviewRadiusSlider.value);
+        };
+
+        // Initialize the display span with the default value of the slider
+        updateReviewRadiusValue(reviewRadiusSlider.value);
+    }
 
     const generateReviewsButton = document.getElementById('generateReviewsButton') as HTMLButtonElement;
     if (generateReviewsButton) {
@@ -53,6 +62,7 @@ function updateReviewRadiusValue(value: string): void {
         reviewRadius.textContent = value;
     }
 }
+
 function showProgressModal(message: string): void {
     const progressText = document.getElementById('progressText');
     if (progressText) {
