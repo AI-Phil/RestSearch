@@ -35,16 +35,57 @@ async function generateAndWriteReviews(selectedAmenities: Amenity[], average: nu
     for (const amenity of selectedAmenities) {
         const numReviews = Math.max(1, Math.round(normalDistribution(average, stdDev)));
         const response: BaseMessage = await chat.call([
+            // This prompt does reasonably well at generating valid JSON, I had only 3 out of 673 fail.
             new SystemMessage(
-                `You are an amenity review generator that is called as an API with a JSON parameter, and returns a JSON document response with a new field "reviews" added as a list.\n
-                 You should infer the type of amenity from the JSON document, and generate appropriate reviews for that amenity type.\n
-                 If there is insufficient context about the amenity (for example, if the JSON document does not contain the "cuisine" field for a restaurant), you should infer information from the amenity name and location.\n
-                 Before generating the reviews for each amenity, you should fabricate an idea about the amenity - quality of the service, ambiance, etc, and all reviews consistent with that idea. For example, a fine dining establishment is unlikely to cater to children, whilst a causal dining establishment is unlikely to have elaborate menus.\n
-                 10% of amenities should have an average rating of around 2, 20% should have an average rating of around 3, 40% should have an average rating of around 4, and 30% should have an average rating of around 5.\n
-                 The output structure should match the input structure, with the addition of the "reviews" field which should be a list of documents like \"reviews\":[{\"reviewer\":\"...\", \"rating\":..., \"review_text\":\"...\"}, ...]\n
-                 Each review should have between 15 and 50 words.\n
-                 The reviewer name should be a random first name and list initial, and the review rating should be between 1 and 5.\n
-                 Your response should not include any context or text formatting instructions, only the JSON document. Do not include \`\`\`json or any other formatting.\n`
+               `- You are an amenity review generator that receives an API call with a JSON parameter and returns a JSON document response.
+                - The input JSON will contain details of an amenity, including its name, type, location, and metadata.
+                - Your task is to generate reviews for the amenity based on its type and metadata.
+                - The response JSON should have the following structure:
+                  - The top level of the JSON should include the amenity's original details and a new field "reviews" as a list.
+                  - The "reviews" list should contain individual review objects.
+                  - Each review object should have fields: "reviewer", "rating", and "review_text".
+                  - Ensure that commas are correctly placed, and there are no trailing commas in the list.
+                  - The "locality_name" field, if present, should be at the top level of the JSON, outside the "metadata" field.
+                - You should determine a "persona" for the amenity, and reviews should be generated based on that persona. Guidelines for this are:
+                  - Consistency of service or lack of consistency
+                  - Quality of product/service (e.g., food quality, service quality, etc.)
+                  - Ambiance (e.g., noise level, lighting, etc.)
+                  - Price
+                  - Location
+                  - Suitability for different occasions (e.g., family, business, etc.)
+                - Guidelines for review generation:
+                  - Ratings should be consistent with the amenity's persona; e.g., an amenity with poor service should have lower ratings than an amenity with good service.
+                  - Each review should contain 15 to 50 words.
+                  - Reviewer names should be fabricated, consisting of a first name and last initial (e.g., "Eliot K.").
+                  - Ratings should range from 1 to 5.
+                - Do not include formatting instructions in your response, only the structured JSON document.
+                - Ensure the JSON is valid and correctly structured, with proper opening and closing of arrays and objects.
+                
+                Example output JSON structure (for reference):
+                {
+                  "id": "12345",
+                  "name": "Sample Amenity",
+                  "lat": 12.3456,
+                  "lon": -65.4321,
+                  "type": "restaurant",
+                  "metadata": {
+                    // Amenity-specific metadata
+                  },
+                  "reviews": [
+                    {
+                      "reviewer": "Jane S.",
+                      "rating": 4,
+                      "review_text": "Excellent place..."
+                    },
+                    // Additional reviews, and then the last review has no trailing comma:
+                    {
+                        "reviewer": "John Q.",
+                        "rating": 3,
+                        "review_text": "Food was good, but service was slow..."
+                    }  
+                  ],
+                  "locality_name": "Sample City"
+                }`
             ),            
             new HumanMessage(
                 `Given amentiy ${JSON.stringify(amenity)},\n\n please generate ${numReviews} reviews.`

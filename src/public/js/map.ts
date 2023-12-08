@@ -1,5 +1,6 @@
 import L, { DivIcon } from 'leaflet';
 import { Amenity } from '../../schema/Amenity';
+import { getClosestAmenities } from '../../api/common';
 import 'leaflet/dist/leaflet.css';
 
 type MarkerObject = {
@@ -130,19 +131,16 @@ async function getAmenitiesWithinRadius(radiusInMeters: number, type: string = d
                 type: type,
                 metadata: element.tags,
                 reviews: [],
-            }))
-            .sort((a, b) => getDistanceFromLatLonInKm(a.lat, a.lon, lastClickCoords.lat, lastClickCoords.lng) - 
-                            getDistanceFromLatLonInKm(b.lat, b.lon, lastClickCoords.lat, lastClickCoords.lng))
-            .slice(0, closest_n);
+            }));
 
-        return amenities;
+        return getClosestAmenities(amenities, lastClickCoords.lat, lastClickCoords.lng, closest_n);
     } catch (error) {
         console.error('Error fetching amenities:', error);
         return [];
     }
 }
 
-function addMarker(amenity: Amenity, icon: DivIcon) {
+function addMarker(amenity: Amenity, icon: DivIcon, onClick?: (amenity: Amenity) => void) {
     if (!icon) {
         console.error("Icon not provided for marker");
         return;
@@ -168,10 +166,14 @@ function addMarker(amenity: Amenity, icon: DivIcon) {
         .bindPopup(popupContent);
 
     markers[amenity.id] = { marker: marker, amenity: amenity };
+
+    if (onClick) {
+        marker.on('click', () => onClick(amenity));
+    }
 }
 
-function addMarkers(amenities: Amenity[], icon: DivIcon) {
-    amenities.forEach(amenity => addMarker(amenity, icon));
+function addMarkers(amenities: Amenity[], icon: DivIcon, onClick?: (amenity: Amenity) => void) {
+    amenities.forEach(amenity => addMarker(amenity, icon, onClick));
 }
 
 function getAmenitiesWithIcon(icon: DivIcon): Amenity[] {
@@ -187,24 +189,6 @@ function clearAllMarkers() {
         }
     });
     markers = {};
-}
-
-function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    var R = 6371; // Radius of the earth in km
-    var dLat = deg2rad(lat2 - lat1);
-    var dLon = deg2rad(lon2 - lon1); 
-    var a = 
-        Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
-        Math.sin(dLon/2) * Math.sin(dLon/2)
-    ; 
-    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-    var d = R * c; // Distance in km
-    return d;
-}
-
-function deg2rad(deg: number): number {
-    return deg * (Math.PI/180)
 }
 
 async function getCityName(): Promise<string> {

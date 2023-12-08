@@ -40,3 +40,32 @@
     color: grey;
 }
 
+.reviews-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.reviews-table th, .reviews-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+.reviews-table th {
+    background-color: #f2f2f2;
+    text-align: left;
+}
+
+.review {
+    margin-bottom: 20px;
+}
+
+.disclaimer {
+    background-color: yellow;
+    padding: 10px;
+    text-align: center;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+

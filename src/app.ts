@@ -3,7 +3,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 import express, { Request, Response } from 'express';
 import generateAndWriteReviews from './api/reviewGenerator';
-import { findWithinRadius } from './api/astraAmenityReviews';
+import { findWithinRadiusUsingText, findWithinRadius } from './api/astraAmenityReviews';
+import { Amenity } from './schema/Amenity';
 const app = express();
 const port = 3000;
 
@@ -37,11 +38,16 @@ app.post('/find-within-radius', async (req: Request, res: Response) => {
     try {
         const { text, k, radius, lat, lon } = req.body;
 
-        if (!text || radius === undefined || lat === undefined || lon === undefined) {
+        if (radius === undefined || lat === undefined || lon === undefined) {
             return res.status(400).send('Missing required parameters');
         }
-
-        const amenities = await findWithinRadius(text, k, radius, lat, lon);
+        let amenities: Amenity[] = [];
+        if (text) {
+            amenities = await findWithinRadiusUsingText(text, k, radius, lat, lon);
+        } 
+        else {
+            amenities = await findWithinRadius(k, radius, lat, lon);
+        }
         res.json(amenities);
     } catch (error) {
         console.error(error);
