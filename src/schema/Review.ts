@@ -3,4 +3,5 @@ export interface Review {
     reviewer: string;
     rating: number;
     review_text: string;
+    similarity?: number;
 }

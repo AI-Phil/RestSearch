@@ -126,31 +126,35 @@ async function findWithinRadiusUsingText(text: string, k: number, radius: number
   await ensureStoreInitialized();
 
   const filter = { name: "GEO_DISTANCE(coords,?)", operator: "<=", value: [new Float32Array([lat, lon]), radius] };
-  const results = await vectorStore.similaritySearch(text, k, filter);
+  const results = await vectorStore.similaritySearchWithScore(text, k, filter);
 
   const amenitiesMap = new Map<string, Amenity>();
 
   for (const result of results) {
+      const document: Document = result[0];
+      const score: number = result[1];
+
       const review: Review = {
-          id: result.metadata.review_id,
-          reviewer: result.metadata.reviewer_name,
-          rating: result.metadata.rating,
-          review_text: result.pageContent
+          id: document.metadata.review_id,
+          reviewer: document.metadata.reviewer_name,
+          rating: document.metadata.rating,
+          review_text: document.pageContent,
+          similarity: score
       };
 
-      const amenityId = result.metadata.amenity_id;
+      const amenityId = document.metadata.amenity_id;
 
       if (amenitiesMap.has(amenityId)) {
           amenitiesMap.get(amenityId)?.reviews.push(review);
       } else {
           const amenity: Amenity = {
               id: amenityId,
-              name: result.metadata.amenity_name,
-              type: result.metadata.type,
-              lat: result.metadata.coords[0],
-              lon: result.metadata.coords[1],
+              name: document.metadata.amenity_name,
+              type: document.metadata.type,
+              lat: document.metadata.coords[0],
+              lon: document.metadata.coords[1],
               reviews: [review],
-              metadata: JSON.parse(result.metadata.metadata),
+              metadata: JSON.parse(document.metadata.metadata),
           };
           amenitiesMap.set(amenityId, amenity);
       }

@@ -31,8 +31,7 @@ function attachFindFunctionality(): void {
                 updateFindRadiusValue(event.target.value);
             }
         });
-    }
-    
+    }   
 }
 
 async function showMarkers(e: L.LeafletMouseEvent) {
@@ -78,13 +77,15 @@ function updateReviewsContainer(amenity: Amenity) {
 
         // Populate the table rows with review data
         amenity.reviews.forEach(review => {
+            const similarityText = (review.similarity && review.similarity !== undefined) ? ` (${(review.similarity * 100).toFixed(0)}%)` : ''
+
             tableHTML += `
                 <tr>
                     <td>
                         <strong>${review.reviewer}</strong><br>
                         Rating: ${review.rating}
                     </td>
-                    <td>${review.review_text}</td>
+                    <td>${review.review_text}${similarityText}</td>
                 </tr>
             `;
         });
