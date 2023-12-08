@@ -7,6 +7,6 @@ export interface Amenity {
     locality_name?: string;
     lat: number;
     lon: number;
-    metadata: Record<string, unknown>;
+    metadata?: Record<string, unknown>;
     reviews: Review[];
 }

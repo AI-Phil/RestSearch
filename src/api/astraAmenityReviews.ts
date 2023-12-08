@@ -3,6 +3,7 @@ import { CassandraStore, CassandraLibArgs, SupportedVectorTypes } from "langchai
 import { Document } from "langchain/document";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { Amenity } from '../schema/Amenity';
+import { Review } from '../schema/Review';
 
 validateEnvVariables([
     'CASSANDRA_SCB',
@@ -94,6 +95,42 @@ async function save(amenity: Amenity): Promise<void> {
     return vectorStore.addDocuments(docs);
 }
 
+async function findWithinRadius(text: string, k: number, radius: number, lat: number, lon: number): Promise<Amenity[]> {
+  await ensureStoreInitialized();
+
+  const filter = { name: "GEO_DISTANCE(coords,?)", operator: "<=", value: [new Float32Array([lat, lon]), radius] };
+  const results = await vectorStore.similaritySearch(text, k, filter);
+
+  const amenitiesMap = new Map<string, Amenity>();
+
+  for (const result of results) {
+      const review: Review = {
+          id: result.metadata.review_id,
+          reviewer: result.metadata.reviewer_name,
+          rating: result.metadata.rating,
+          review_text: result.pageContent
+      };
+
+      const amenityId = result.metadata.amenity_id;
+
+      if (amenitiesMap.has(amenityId)) {
+          amenitiesMap.get(amenityId)?.reviews.push(review);
+      } else {
+          const amenity: Amenity = {
+              id: amenityId,
+              name: result.metadata.amenity_name,
+              type: result.metadata.type,
+              lat: result.metadata.coords[0],
+              lon: result.metadata.coords[1],
+              reviews: [review],
+          };
+          amenitiesMap.set(amenityId, amenity);
+      }
+  }
+
+  return Array.from(amenitiesMap.values());
+}
+
 export {
-    save
+    save, findWithinRadius
 };

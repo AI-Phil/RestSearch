@@ -243,5 +243,6 @@ export const mapUtils = {
     getAmenitiesWithIcon,
     getCityName,
     greenIcon,
-    greyIcon
+    greyIcon,
+    default_amenity
 };

@@ -19,6 +19,9 @@
     <div style="display: flex;">
         <!-- Left Container for Widgets -->
         <div style="padding: 20px;">
+            <!-- Toggle Mode Button -->
+            <button id="modeToggle">Enter Review Mode</button>
+            <hr>
             <!-- Find Widgets -->
             <div id="findWidgets">
                 <div id="locationBox">
@@ -28,8 +31,13 @@
                 <hr>            
                 <div class="slider-container">
                     <label for="findRadiusSlider">Radius (meters):</label>
-                    <input type="range" id="findRadiusSlider" min="100" max="5000" value="400" step="100">
-                    <span id="findRadius">400</span>
+                    <input type="range" id="findRadiusSlider" min="100" max="5000" value="500" step="100">
+                    <span id="findRadius">500</span>
+                </div>
+                <label for="numFindLocations">Number of Locations to Find:</label>
+                <input type="number" id="numFindLocations" value="100">
+                <div class="search-box">
+                    <input type="text" id="searchTextInput" placeholder="Enter search text">
                 </div>
             </div>
 
@@ -61,12 +69,9 @@
                     <input type="number" id="stdDevReviews" value="2">
                     <br>
                 </div>
+                <hr>
                 <button id="generateReviewsButton">Generate Reviews</button>
             </div>
-
-            <hr>
-            <!-- Toggle Mode Button -->
-            <button id="modeToggle">Enter Review Mode</button>
 
         </div>
         

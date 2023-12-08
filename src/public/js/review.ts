@@ -12,7 +12,7 @@ function attachReviewFunctionality(): void {
             const radius = parseInt(reviewRadiusSlider.value, 10);
             const closestN = parseInt(closestNInput.value, 10);
             try {
-                const amenities = await mapUtils.getAmenitiesWithinRadius(radius, 'restaurant', closestN);
+                const amenities = await mapUtils.getAmenitiesWithinRadius(radius, mapUtils.default_amenity, closestN);
                 mapUtils.addMarkers(amenities, mapUtils.greenIcon);
                 updateSelectedCount();
             } catch (error) {
