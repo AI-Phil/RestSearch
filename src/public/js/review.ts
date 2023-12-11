@@ -13,7 +13,7 @@ function attachReviewFunctionality(): void {
             const closestN = parseInt(closestNInput.value, 10);
             try {
                 const amenities = await mapUtils.getAmenitiesWithinRadius(radius, mapUtils.default_amenity, closestN);
-                mapUtils.addMarkers(amenities, mapUtils.greenIcon);
+                mapUtils.addMarkers(amenities);
                 updateSelectedCount();
             } catch (error) {
                 console.error("Error fetching amenities:", error);
@@ -44,7 +44,7 @@ function attachReviewFunctionality(): void {
 }
 
 function updateSelectedCount(): void {
-    selectedAmenities = mapUtils.getAmenitiesWithIcon(mapUtils.greenIcon);
+    selectedAmenities = mapUtils.getAmenitiesWithIcon();
     const selectedCountValue = document.getElementById('selectedCountValue');
     if (selectedCountValue) {
         selectedCountValue.textContent = selectedAmenities.length.toString();

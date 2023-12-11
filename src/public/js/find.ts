@@ -48,7 +48,7 @@ async function showMarkers(e: L.LeafletMouseEvent) {
     let amenities: Amenity[] = [];    
     amenities = await findWithinRadius(searchText, findLimit, radius, e.latlng.lat, e.latlng.lng);
 
-    mapUtils.addMarkers(amenities, mapUtils.greenIcon, updateReviewsContainer);
+    mapUtils.addMarkers(amenities, updateReviewsContainer);
 }
 
 function updateReviewsContainer(amenity: Amenity) {

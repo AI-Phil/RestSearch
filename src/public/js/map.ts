@@ -1,5 +1,6 @@
 import L, { DivIcon } from 'leaflet';
 import { Amenity } from '../../schema/Amenity';
+import { Review } from '../../schema/Review';
 import { getClosestAmenities } from '../../api/common';
 import 'leaflet/dist/leaflet.css';
 
@@ -26,18 +27,6 @@ let map: L.Map;
 let markers: Record<string, MarkerObject> = {};
 let lastClickCoords: L.LatLng;
 let mapInitializationPromise: Promise<L.Map>;
-
-var greenIcon = L.divIcon({
-    className: 'green-marker',
-    html: '<span class="material-symbols-outlined">location_on</span>',
-    iconAnchor: [12, 24]
-});
-
-var greyIcon = L.divIcon({
-    className: 'grey-marker',
-    html: '<span class="material-symbols-outlined">location_on</span>',
-    iconAnchor: [12, 24]
-});
 
 function initMap(lat = default_lat, lon = default_lon, zoom = default_zoom): Promise<L.Map> {
     mapInitializationPromise = new Promise((resolve, reject) => {
@@ -140,11 +129,7 @@ async function getAmenitiesWithinRadius(radiusInMeters: number, type: string = d
     }
 }
 
-function addMarker(amenity: Amenity, icon: DivIcon, onClick?: (amenity: Amenity) => void) {
-    if (!icon) {
-        console.error("Icon not provided for marker");
-        return;
-    }
+function addMarker(amenity: Amenity, onClick?: (amenity: Amenity) => void) {
 
     // Skip if a marker with the same ID already exists
     if (markers[amenity.id]) {
@@ -161,7 +146,14 @@ function addMarker(amenity: Amenity, icon: DivIcon, onClick?: (amenity: Amenity)
         }
     }
 
-    var marker = L.marker([amenity.lat, amenity.lon], { icon: icon })
+    const markerColor = getMarkerColorBySimilarity(amenity.reviews);
+    var customIcon = L.divIcon({
+        className: 'green-marker',
+        html: `<span class="material-symbols-outlined" style="color:${markerColor}">location_on</span>`,
+        iconAnchor: [12, 24]
+    });
+
+    var marker = L.marker([amenity.lat, amenity.lon], { icon: customIcon })
         .addTo(map)
         .bindPopup(popupContent);
 
@@ -172,13 +164,13 @@ function addMarker(amenity: Amenity, icon: DivIcon, onClick?: (amenity: Amenity)
     }
 }
 
-function addMarkers(amenities: Amenity[], icon: DivIcon, onClick?: (amenity: Amenity) => void) {
-    amenities.forEach(amenity => addMarker(amenity, icon, onClick));
+function addMarkers(amenities: Amenity[], onClick?: (amenity: Amenity) => void) {
+    amenities.forEach(amenity => addMarker(amenity, onClick));
 }
 
-function getAmenitiesWithIcon(icon: DivIcon): Amenity[] {
+function getAmenitiesWithIcon(): Amenity[] {
     return Object.values(markers)
-                 .filter(markerObj => markerObj.marker.options.icon === icon)
+                 .filter(markerObj => markerObj.marker.options.icon)
                  .map(markerObj => markerObj.amenity);
 }
 
@@ -214,6 +206,34 @@ async function getCityName(): Promise<string> {
     }
 }
 
+function getMarkerColorBySimilarity(reviews: Review[]): string {
+    const level5 = "#008000"
+    const level4 = "#229122"
+    const level3 = "#45a345"
+    const level2 = "#68b568"
+    const level1 = "#8bc78b"
+
+    if (reviews.length === 0 || reviews.every(review => review.similarity === undefined)) {
+        return level5;
+    }
+
+    const averageSimilarity = reviews
+        .filter(review => review.similarity !== undefined)
+        .reduce((acc, review) => acc + (review.similarity || 0), 0) / reviews.length;
+
+    if (averageSimilarity < 0.90) {
+        return level1;
+    } else if (averageSimilarity < 0.92) {
+        return level2;
+    } else if (averageSimilarity < 0.93) {
+        return level3;
+    } else if (averageSimilarity < 0.94) {
+        return level4;
+    } else {
+        return level5;
+    }
+}
+
 export const mapUtils = {
     awaitMapInitialization: () => mapInitializationPromise,
     initMap,
@@ -226,7 +246,5 @@ export const mapUtils = {
     },
     getAmenitiesWithIcon,
     getCityName,
-    greenIcon,
-    greyIcon,
     default_amenity
 };
