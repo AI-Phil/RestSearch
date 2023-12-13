@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 import express, { Request, Response } from 'express';
 import generateAndWriteReviews from './api/reviewGenerator';
-import { findWithinRadiusUsingText, findWithinRadius } from './api/astraAmenityReviews';
+import { findWithinRadiusUsingText, findWithinRadius, load } from './api/astraAmenityReviews';
 import { Amenity } from './schema/Amenity';
 const app = express();
 const port = 3000;
@@ -52,6 +52,16 @@ app.post('/find-within-radius', async (req: Request, res: Response) => {
     } catch (error) {
         console.error(error);
         res.status(500).send('Error processing request');
+    }
+});
+
+app.get('/load', async (req: Request, res: Response) => {
+    try {
+        await load();
+        res.send('Load successful');
+    } catch (error) {
+        console.error('Load failed:', error);
+        res.status(500).send('Load failed');
     }
 });
 

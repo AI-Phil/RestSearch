@@ -6,6 +6,11 @@ import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { Amenity } from '../schema/Amenity';
 import { Review } from '../schema/Review';
 import { getClosestAmenities } from './common';
+import { createReadStream } from 'fs';
+import zlib from 'zlib';
+import Papa from 'papaparse';
+import fs from 'fs';
+import { pipeline } from 'stream/promises';
 
 validateEnvVariables([
     'CASSANDRA_SCB',
@@ -203,9 +208,126 @@ async function findWithinRadius(k: number, radius: number, lat: number, lon: num
   return getClosestAmenities(amenities, lat, lon, k);
 }
 
+// File content based on this output, which then needed combining from multiple files
+// astra db unload -o csv -url ./amenity_reviews -query 'SELECT amenity_id ,review_id ,amenity_name, coords,locality, metadata, rating, reviewer_name ,\"text\" as c_text,\"type\"  as c_type,\"vector\" as c_vector FROM restsearch.amenity_reviews' -- vectors
+async function load() {
+    await ensureNativeClientInitialized();
+
+    const file = './amenity_reviews.csv.gz';
+    const fileStream = fs.createReadStream(file).pipe(zlib.createGunzip());
+    const concurrentLimit = 50;
+    let counter = 0;
+    const processingQueue: Promise<void>[] = [];
+
+    const parsingComplete = new Promise<void>((resolve, reject) => {
+        Papa.parse(fileStream, {
+            header: true,
+            skipEmptyLines: true,
+            dynamicTyping: false,
+            quoteChar: '"',
+            escapeChar: '\\',
+            step: (result, parser) => {
+                parser.pause();
+                const processPromise = processRow(result.data as RowData).then(() => {
+                    counter++;
+                    if (counter % 100 === 0) {
+                        console.log(`Processed ${counter} records`);
+                    }
+                });
+                processingQueue.push(processPromise);
+
+                if (processingQueue.length >= concurrentLimit) {
+                    Promise.all(processingQueue).then(() => {
+                        processingQueue.length = 0; // Clear the queue
+                        parser.resume();
+                    }).catch(error => {
+                        console.error(`Error processing batch: ${error}`);
+                        parser.abort();
+                        reject(error);
+                    });
+                } else {
+                    parser.resume();
+                }
+            },
+            complete: async () => {
+                // Wait for any remaining queued operations to finish
+                await Promise.all(processingQueue);
+                console.log('CSV file successfully processed');
+                console.log(`Total records processed: ${counter}`);
+                resolve();
+            },
+            error: (error) => {
+                console.error(`Parsing error: ${error}`);
+                reject(error);
+            }
+        });
+    });
+
+    try {
+        await parsingComplete;
+    } catch (error) {
+        console.error(`Load failed: ${error}`);
+    }
+}
+
+interface RowData {
+    amenity_id: string;
+    review_id: string;
+    amenity_name: string;
+    coords: string;
+    locality: string;
+    metadata: string;
+    rating: string;
+    reviewer_name: string;
+    c_text: string;
+    c_type: string;
+    c_vector: string;
+}
+
+async function processRow(row: RowData) {
+    try {
+        const coordsArray = parseVector(row.coords, 2);
+        const vectorArray = parseVector(row.c_vector, 1536);
+
+        const query = `INSERT INTO ${KEYSPACE}.${TABLE} (amenity_id, review_id, amenity_name, coords, locality, metadata, rating, reviewer_name, text, type, vector) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        const params = [row.amenity_id, row.review_id, row.amenity_name, coordsArray, row.locality, row.metadata, row.rating, row.reviewer_name, row.c_text, row.c_type, vectorArray];
+        
+        await nativeClient.execute(query, params, { prepare: true });
+    } catch (error) {
+        console.error(`Error processing row with id ${row.amenity_id},${row.review_id}: ${error}`);
+        throw error;
+    }
+}
+
+function parseVector(vectorString: string, expectedDims: number): Float32Array {
+    const start = vectorString.indexOf('[') + 1;
+    const end = vectorString.lastIndexOf(']');
+    const vectorSubString = vectorString.substring(start, end);
+
+    if (typeof vectorString === 'undefined' || vectorString === null) {
+        console.error('Vector string is undefined or null');
+        return new Float32Array();
+    }
+
+    try {
+        const vectorValues = vectorSubString.split(',').map(val => parseFloat(val.trim()));
+        if (vectorValues.length !== expectedDims) {
+            throw new Error(`Unexpected number of elements in vector: found ${vectorValues.length}, expected ${expectedDims}`);
+        }
+
+        return new Float32Array(vectorValues);
+    } catch (error) {
+        console.error('===============================================================================');
+        console.error('Vector parsing error:', error);
+        console.error('vectorString:', vectorString);
+        console.error('vectorSubString:', vectorSubString);
+        console.error('===============================================================================');
+        throw error;
+    }
+}
+
 export {
-    save, findWithinRadiusUsingText, findWithinRadius
+    save, load, findWithinRadiusUsingText, findWithinRadius
 };
 
-// astra db unload -o csv -url ./amenity_reviews -query 'SELECT amenity_id ,review_id ,amenity_name, coords,locality, metadata, rating, reviewer_name ,\"text\" as c_text,\"type\"  as c_type,\"vector\" as c_vector FROM restsearch.amenity_reviews' -- vectors
 

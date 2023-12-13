@@ -35,7 +35,7 @@ async function generateAndWriteReviews(selectedAmenities: Amenity[], average: nu
     for (const amenity of selectedAmenities) {
         const numReviews = Math.max(1, Math.round(normalDistribution(average, stdDev)));
         const response: BaseMessage = await chat.call([
-            // This prompt does reasonably well at generating valid JSON, I had only 3 out of 673 fail.
+            // This prompt does reasonably well at generating valid JSON, I had only 3 out of 673 fail with gpt-3.5-turbo-1106
             new SystemMessage(
                `- You are an amenity review generator that receives an API call with a JSON parameter and returns a JSON document response.
                 - The input JSON will contain details of an amenity, including its name, type, location, and metadata.

@@ -9,20 +9,6 @@ function attachFindFunctionality(): void {
         }
     });
 
-    const locationInput = document.getElementById('locationInput') as HTMLInputElement;
-    if (locationInput) {
-        locationInput.addEventListener('keypress', (event) => {
-            if (event.key === 'Enter') {
-                mapUtils.changeMapLocation();
-            }
-        });
-    }
-
-    const locationButton = document.getElementById('locationButton') as HTMLButtonElement;
-    if (locationButton) {
-        locationButton.addEventListener('click', mapUtils.changeMapLocation);
-    }
-
     const findRadiusSlider = document.getElementById('findRadiusSlider') as HTMLInputElement;
     if (findRadiusSlider) {
         findRadiusSlider.addEventListener('input', (event) => {

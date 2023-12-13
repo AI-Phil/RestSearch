@@ -1,4 +1,4 @@
-import L, { DivIcon } from 'leaflet';
+import L from 'leaflet';
 import { Amenity } from '../../schema/Amenity';
 import { Review } from '../../schema/Review';
 import { getClosestAmenities } from '../../api/common';
@@ -20,15 +20,15 @@ interface OsmElement {
 }
 
 let default_zoom = 16;
-let default_lat = 53.3416362; // Grafton Street, Dublin, Ireland
-let default_lon = -6.2627662;
+let init_lat = parseFloat(process.env.MAP_INIT_LATITUDE as string);
+let init_lon = parseFloat(process.env.MAP_INIT_LONGITUDE as string);
 let default_amenity = "restaurant";
 let map: L.Map;
 let markers: Record<string, MarkerObject> = {};
 let lastClickCoords: L.LatLng;
 let mapInitializationPromise: Promise<L.Map>;
 
-function initMap(lat = default_lat, lon = default_lon, zoom = default_zoom): Promise<L.Map> {
+function initMap(lat = init_lat, lon = init_lon, zoom = default_zoom): Promise<L.Map> {
     mapInitializationPromise = new Promise((resolve, reject) => {
         try {
             resetMap(lat, lon, zoom);
@@ -46,7 +46,7 @@ function initMap(lat = default_lat, lon = default_lon, zoom = default_zoom): Pro
     return mapInitializationPromise;
 }
 
-function resetMap(lat = default_lat, lon = default_lon, zoom = default_zoom) {
+function resetMap(lat = init_lat, lon = init_lon, zoom = default_zoom) {
     clearAllMarkers();
     if (map) {
         map.setView([lat, lon], zoom);
@@ -59,38 +59,6 @@ function resetMap(lat = default_lat, lon = default_lon, zoom = default_zoom) {
         map.on('click', function(e) {
             lastClickCoords = e.latlng;
         });
-    }
-}
-
-function changeMapLocation(): void {
-    const locationInput = document.getElementById('locationInput') as HTMLInputElement;
-    const locationName = locationInput.value;
-    if (locationName) {
-        moveToLocation(locationName)
-            .then(() => console.log("Map moved to:", locationName))
-            .catch(error => console.error('Error moving map:', error));
-    } else {
-        alert("Please enter a location name.");
-    }
-}
-
-async function moveToLocation(locationName: string) {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationName)}`;
-
-    try {
-        const response = await fetch(url);
-        const data = await response.json();
-
-        if (data.length > 0) {
-            const lat = data[0].lat;
-            const lon = data[0].lon;
-            resetMap(lat, lon, default_zoom);
-        } else {
-            alert("Location not found. Please try a different search term.");
-        }
-    } catch (error) {
-        console.error('Error finding location:', error);
-        alert("An error occurred while searching for the location.");
     }
 }
 
@@ -237,7 +205,6 @@ function getMarkerColorBySimilarity(reviews: Review[]): string {
 export const mapUtils = {
     awaitMapInitialization: () => mapInitializationPromise,
     initMap,
-    changeMapLocation,
     getAmenitiesWithinRadius,
     clearAllMarkers,
     addMarkers,
