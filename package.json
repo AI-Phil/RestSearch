@@ -4,7 +4,7 @@
   "description": "",
   "main": "dist/app.js",
   "scripts": {
-    "copy-static": "ncp src/public/css dist/public/css && ncp src/views dist/views && ncp amenity_reviews.csv.gz dist/amenity_reviews.csv.gz",
+    "copy-static": "ncp src/public/css dist/public/css && ncp src/views dist/views",
     "build-backend": "tsc --project tsconfig.backend.json",
     "build-frontend": "webpack --config webpack.config.js",
     "build": "npm run build-backend && npm run build-frontend && npm run copy-static",
@@ -20,10 +20,15 @@
     "dotenv": "^16.3.1",
     "ejs": "^3.1.9",
     "express": "^4.18.2",
-    "langchain": "^0.0.202",
+    "langchain": "^0.0.207",
     "leaflet": "^1.9.4",
     "openai": "^4.20.1",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "axios": "^1.6.2",
+    "fs": "^0.0.1-security",
+    "zlib": "^1.0.5",
+    "dotenv-webpack": "^8.0.1",
+    "papaparse": "^5.4.1"
   },
   "devDependencies": {
     "@types/bootstrap": "^5.2.10",
@@ -32,16 +37,12 @@
     "@types/node": "^20.10.4",
     "@types/papaparse": "^5.3.14",
     "css-loader": "^6.8.1",
-    "dotenv-webpack": "^8.0.1",
-    "fs": "^0.0.1-security",
     "ncp": "^2.0.0",
-    "papaparse": "^5.4.1",
     "style-loader": "^3.3.3",
     "ts-loader": "^9.5.1",
     "typescript": "^5.3.3",
     "webpack": "^5.89.0",
     "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^4.15.1",
-    "zlib": "^1.0.5"
+    "webpack-dev-server": "^4.15.1"
   }
 }

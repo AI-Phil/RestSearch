@@ -20,15 +20,13 @@ interface OsmElement {
 }
 
 let default_zoom = 16;
-let init_lat = parseFloat(process.env.MAP_INIT_LATITUDE as string);
-let init_lon = parseFloat(process.env.MAP_INIT_LONGITUDE as string);
 let default_amenity = "restaurant";
 let map: L.Map;
 let markers: Record<string, MarkerObject> = {};
 let lastClickCoords: L.LatLng;
 let mapInitializationPromise: Promise<L.Map>;
 
-function initMap(lat = init_lat, lon = init_lon, zoom = default_zoom): Promise<L.Map> {
+function initMap(lat: number, lon: number, zoom = default_zoom): Promise<L.Map> {
     mapInitializationPromise = new Promise((resolve, reject) => {
         try {
             resetMap(lat, lon, zoom);
@@ -46,7 +44,7 @@ function initMap(lat = init_lat, lon = init_lon, zoom = default_zoom): Promise<L
     return mapInitializationPromise;
 }
 
-function resetMap(lat = init_lat, lon = init_lon, zoom = default_zoom) {
+function resetMap(lat: number, lon: number, zoom = default_zoom) {
     clearAllMarkers();
     if (map) {
         map.setView([lat, lon], zoom);
@@ -185,17 +183,17 @@ function getMarkerColorBySimilarity(reviews: Review[]): string {
         return level5;
     }
 
-    const averageSimilarity = reviews
-        .filter(review => review.similarity !== undefined)
-        .reduce((acc, review) => acc + (review.similarity || 0), 0) / reviews.length;
+    const maxSimilarity = reviews
+        .map(review => review.similarity ?? 0) 
+        .reduce((max, similarity) => similarity > max ? similarity : max, 0);
 
-    if (averageSimilarity < 0.90) {
+    if (maxSimilarity < 0.90) {
         return level1;
-    } else if (averageSimilarity < 0.92) {
+    } else if (maxSimilarity < 0.92) {
         return level2;
-    } else if (averageSimilarity < 0.93) {
+    } else if (maxSimilarity < 0.93) {
         return level3;
-    } else if (averageSimilarity < 0.94) {
+    } else if (maxSimilarity < 0.94) {
         return level4;
     } else {
         return level5;

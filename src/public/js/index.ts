@@ -3,13 +3,15 @@ import { attachFindFunctionality } from './find';
 import { attachReviewFunctionality } from './review';
 
 document.addEventListener('DOMContentLoaded', function() {
-    mapUtils.initMap().then(() => {
-        attachFindFunctionality();
-        attachReviewFunctionality();
-    }).catch(error => {
-        console.error('Error initializing map:', error);
+    fetchConfig().then(config => {
+        mapUtils.initMap(config.MAP_INIT_LATITUDE, config.MAP_INIT_LONGITUDE).then(() => {
+            attachFindFunctionality();
+            attachReviewFunctionality();
+        }).catch(error => {
+            console.error('Error initializing map:', error);
+        });    
     });
-
+    
     const modeToggle = document.getElementById('modeToggle') as HTMLButtonElement;
     if (modeToggle) {
         modeToggle.addEventListener('click', toggleMode);
@@ -39,9 +41,14 @@ function toggleMode(): void {
     mapUtils.clearAllMarkers(); // Ensure mapUtils is properly typed or declared
 }
 
-
 function getCurrentMode(): Mode {
     return currentMode;
 }
 
-export { getCurrentMode };
+async function fetchConfig() {
+    const response = await fetch('/config');
+    const config = await response.json();
+    return config;
+}
+
+export { getCurrentMode, fetchConfig };

@@ -36,11 +36,17 @@ app.post('/generate-reviews', async (req: Request, res: Response) => {
 
 app.post('/find-within-radius', async (req: Request, res: Response) => {
     try {
-        const { text, k, radius, lat, lon } = req.body;
+        const text = req.body.text;
+        const k = parseInt(req.body.k, 10);
+        const radius = parseFloat(req.body.radius);
+        const lat = parseFloat(req.body.lat);
+        const lon = parseFloat(req.body.lon);
 
-        if (radius === undefined || lat === undefined || lon === undefined) {
-            return res.status(400).send('Missing required parameters');
+        // Check if any of the numeric values are not numbers
+        if (isNaN(radius) || isNaN(lat) || isNaN(lon) || isNaN(k)) {
+            return res.status(400).send('Invalid numeric parameters');
         }
+
         let amenities: Amenity[] = [];
         if (text) {
             amenities = await findWithinRadiusUsingText(text, k, radius, lat, lon);
@@ -63,6 +69,13 @@ app.get('/load', async (req: Request, res: Response) => {
         console.error('Load failed:', error);
         res.status(500).send('Load failed');
     }
+});
+
+app.get('/config', (req, res) => {
+    res.json({
+        MAP_INIT_LATITUDE: process.env.MAP_INIT_LATITUDE,
+        MAP_INIT_LONGITUDE: process.env.MAP_INIT_LONGITUDE
+    });
 });
 
 app.listen(port, () => {
