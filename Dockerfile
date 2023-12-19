@@ -23,27 +23,11 @@ RUN --mount=type=bind,source=package.json,target=package.json \
     --mount=type=cache,target=/root/.npm \
     npm ci --omit=dev
 
-# Workaround until LangchainJS takes update
-COPY patches/langchain-vectorstores/*                 node_modules/langchain/vectorstores
-COPY patches/langchain-dist-vectorstores/*            node_modules/langchain/dist/vectorstores
-COPY patches/langchain-community-vectorstores/*       node_modules/@langchain/community/vectorstores
-COPY patches/langchain-community-dist-vectorstores/*  node_modules/@langchain/community/dist/vectorstores
-
-# ################################################################################
-# # Create a stage for building the application.
-# FROM deps as debug
-
-# # Download additional development dependencies before building, as some projects require
-# # "devDependencies" to be installed to build. If you don't need this, remove this step.
-# RUN --mount=type=bind,source=package.json,target=package.json \
-#     --mount=type=bind,source=package-lock.json,target=package-lock.json \
-#     --mount=type=cache,target=/root/.npm \
-#     npm ci
-
-# # Workaround until LangchainJS takes update
-# COPY patches/langchain-vectorstores/* node_modules/langchain/vectorstores
-# COPY patches/langchain-dist-vectorstores/* node_modules/langchain/dist/vectorstores
-# COPY patches/langchain-community-vectorstores/* node_modules/@langchain/community/vectorstores
+# This allows local builds to use an experimenal version of LangchainJS
+# COPY patches/langchain-vectorstores/*                 node_modules/langchain/vectorstores
+# COPY patches/langchain-dist-vectorstores/*            node_modules/langchain/dist/vectorstores
+# COPY patches/langchain-community-vectorstores/*       node_modules/@langchain/community/vectorstores
+# COPY patches/langchain-community-dist-vectorstores/*  node_modules/@langchain/community/dist/vectorstores
 
 ################################################################################
 # Create a stage for building the application.
@@ -56,11 +40,11 @@ RUN --mount=type=bind,source=package.json,target=package.json \
     --mount=type=cache,target=/root/.npm \
     npm ci
 
-# Workaround until LangchainJS takes update
-COPY patches/langchain-vectorstores/*                 node_modules/langchain/vectorstores
-COPY patches/langchain-dist-vectorstores/*            node_modules/langchain/dist/vectorstores
-COPY patches/langchain-community-vectorstores/*       node_modules/@langchain/community/vectorstores
-COPY patches/langchain-community-dist-vectorstores/*  node_modules/@langchain/community/dist/vectorstores
+# This allows local builds to use an experimenal version of LangchainJS
+# COPY patches/langchain-vectorstores/*                 node_modules/langchain/vectorstores
+# COPY patches/langchain-dist-vectorstores/*            node_modules/langchain/dist/vectorstores
+# COPY patches/langchain-community-vectorstores/*       node_modules/@langchain/community/vectorstores
+# COPY patches/langchain-community-dist-vectorstores/*  node_modules/@langchain/community/dist/vectorstores
 
 # Copy the rest of the source files into the image.
 COPY . .
