@@ -1,6 +1,6 @@
 import { validateEnvVariables } from './common';
 import { CassandraStore, CassandraLibArgs, SupportedVectorTypes } from "langchain/vectorstores/cassandra";
-import { Client as NativeClient } from "cassandra-driver";
+import { Client } from "cassandra-driver";
 import { Document } from "langchain/document";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { Amenity } from '../schema/Amenity';
@@ -9,13 +9,10 @@ import { getClosestAmenities } from './common';
 import zlib from 'zlib';
 import Papa from 'papaparse';
 import fs from 'fs';
-import axios from 'axios';
-import os from 'os';
-import path from 'path';
 
 validateEnvVariables([
     'ASTRA_DB_ID',
-    'CASSANDRA_TOKEN',
+    'ASTRA_TOKEN',
     'CASSANDRA_KEYSPACE',
     'OPENAI_EMBEDDING_DIMENSIONS',
     'OPENAI_EMBEDDING_MODEL',
@@ -23,7 +20,7 @@ validateEnvVariables([
 
 let vectorStore: CassandraStore;
 let vectorStoreInitialization: Promise<void>;
-let nativeClient: NativeClient;
+let nativeClient: Client;
 let nativeClientInitialization: Promise<void>;
 
 const KEYSPACE = process.env.CASSANDRA_KEYSPACE as string;
@@ -32,31 +29,14 @@ const TABLE = "amenity_reviews";
 async function initializeCassandraStore() {
   const databaseId = process.env.ASTRA_DB_ID as string;
   const region = process.env.ASTRA_DB_REGION || null;
-  const token = process.env.CASSANDRA_TOKEN as string;
-  let scbPath = process.env.CASSANDRA_SCB; 
-
-  if (!scbPath) {
-    let scbFileName = `astra-secure-connect-${databaseId}`;
-    if (region) {
-        scbFileName += `-${region}`;
-    }
-    scbFileName += '.zip';
-
-    const defaultPath = path.join(os.tmpdir(), scbFileName);
-    scbPath = defaultPath;
-  }
-
-  if (!fs.existsSync(scbPath)) {
-    await downloadAstraBundle(databaseId, token, region, scbPath);
-  }
+  const token = process.env.ASTRA_TOKEN as string;
 
   const config: CassandraLibArgs = {
-    cloud: {
-      secureConnectBundle: scbPath,
-    },
-    credentials: {
-      username: "token",
-      password: process.env.CASSANDRA_TOKEN as string,
+    serviceProviderArgs: {
+        astra: {
+          token: process.env.ASTRA_TOKEN as string,
+          datacenterID: process.env.ASTRA_DB_ID as string,
+        },
     },
     keyspace: KEYSPACE,
     dimensions: parseInt(process.env.OPENAI_EMBEDDING_DIMENSIONS as string),
@@ -87,8 +67,11 @@ async function initializeCassandraStore() {
     vectorStore = store;
   });  
 
-  nativeClient = new NativeClient(config);
-  nativeClientInitialization = nativeClient.connect();
+  nativeClientInitialization = CassandraStore.getClient(config).then(client => {
+    nativeClient = client;
+    return client.connect();
+  });
+
 }
 
 initializeCassandraStore();
@@ -345,41 +328,6 @@ function parseVector(vectorString: string, expectedDims: number): Float32Array {
         console.error('===============================================================================');
         throw error;
     }
-}
-
-async function getAstraBundleURL(
-    databaseId: string, 
-    token: string, 
-    region: string | null, 
-    bundleURLTemplate?: string): Promise<string> {
-        const effectiveURLTemplate = bundleURLTemplate || "https://api.astra.datastax.com/v2/databases/{database_id}/secureBundleURL?all=true";
-        const url = effectiveURLTemplate.replace('{database_id}', databaseId);
-        const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
-
-        const response = await axios.post(url, {}, { headers });
-
-        if (response.data && Array.isArray(response.data) && response.data.length > 0) {
-            if (region) {
-                const regionalBundle = response.data.find(bundle => bundle.region === region);
-                if (regionalBundle) {
-                    return regionalBundle.downloadURL;
-                } else {
-                    throw new Error(`No secure bundle found for region: ${region}`);
-                }
-            } else {
-                // If no specific region is set, use the first available URL
-                return response.data[0].downloadURL;
-            }
-        } else {
-            throw new Error("Error fetching secure bundle URLs.");
-        }
-}
-
-async function downloadAstraBundle(databaseId: string, token: string, region: string | null, outFilePath: string, bundleURLTemplate?: string): Promise<void> {
-    console.log(`Downloading secure connect bundle to ${outFilePath}`)
-    const bundleURL = await getAstraBundleURL(databaseId, token, region, bundleURLTemplate);
-    const response = await axios.get(bundleURL, { responseType: 'arraybuffer' });
-    fs.writeFileSync(outFilePath, response.data);
 }
 
 export {
