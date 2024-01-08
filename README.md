@@ -53,9 +53,10 @@ In your Docker environment, you should see a new container `restsearch-server` r
 > restsearch@1.0.0 start-backend
 > node dist/app.js
 
-Downloading secure connect bundle to /tmp/astra-secure-connect-[your database id].zip
 Server running at http://localhost:3000
 ```
+
+(You can find the logs wihtin the Docker UI, or run command `docker logs --follow restsearch-server-1`)
 
 This `localhost` is within the container, but if you did not change port mappings that will also be the port on your machine. When you open that URL in a browser, you should see a page similar to:
 
