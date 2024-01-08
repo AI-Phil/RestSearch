@@ -1,5 +1,6 @@
-import { validateEnvVariables } from './common';
-import { CassandraStore, CassandraLibArgs, SupportedVectorTypes } from "langchain/vectorstores/cassandra";
+import { validateEnvVariables, parseVector } from './common';
+import { SupportedVectorTypes } from "langchain/vectorstores/cassandra";
+import AstraClientManager from './astra';
 import { Client } from "cassandra-driver";
 import { Document } from "langchain/document";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
@@ -18,94 +19,127 @@ validateEnvVariables([
     'OPENAI_EMBEDDING_MODEL',
 ]);
 
-let vectorStore: CassandraStore;
-let vectorStoreInitialization: Promise<void>;
-let nativeClient: Client;
-let nativeClientInitialization: Promise<void>;
-
 const KEYSPACE = process.env.CASSANDRA_KEYSPACE as string;
 const TABLE = "amenity_reviews";
 
-async function initializeCassandraStore() {
-  const databaseId = process.env.ASTRA_DB_ID as string;
-  const region = process.env.ASTRA_DB_REGION || null;
-  const token = process.env.ASTRA_TOKEN as string;
-
-  const config: CassandraLibArgs = {
-    serviceProviderArgs: {
-        astra: {
-          token: process.env.ASTRA_TOKEN as string,
-          datacenterID: process.env.ASTRA_DB_ID as string,
-        },
-    },
-    keyspace: KEYSPACE,
-    dimensions: parseInt(process.env.OPENAI_EMBEDDING_DIMENSIONS as string),
-    table: TABLE,
-    vectorType: process.env.VECTOR_TYPE as SupportedVectorTypes || "cosine",
-    primaryKey: [
-      {name: "amenity_id", type: "text", partition: true},
-      {name: "review_id", type: "uuid"},
-    ],
-    metadataColumns: [
-      {name: "amenity_name",type: "text"},
-      {name: "type",type: "text"},
-      {name: "coords",type: "VECTOR<FLOAT,2>"},
-      {name: "locality",type: "text"},
-      {name: "reviewer_name",type: "text"},
-      {name: "rating",type: "int"},
-      {name: "metadata", type: "text"},
-    ],
-    indices: [
-      { name: "coords", value: "(coords)", options:"{'similarity_function': 'euclidean'}" },
-    ],
-  };
-  
-  vectorStoreInitialization = CassandraStore.fromExistingIndex(
+const astra = new AstraClientManager(
     new OpenAIEmbeddings({ modelName: process.env.OPENAI_EMBEDDING_MODEL as string }),
-    config
-  ).then(store => {
-    vectorStore = store;
-  });  
+    {
+        serviceProviderArgs: {
+            astra: {
+                token: process.env.ASTRA_TOKEN as string,
+                datacenterID: process.env.ASTRA_DB_ID as string,
+            },
+        },
+        keyspace: process.env.CASSANDRA_KEYSPACE as string,
+        table: TABLE,
+        vectorType: process.env.VECTOR_TYPE as SupportedVectorTypes || "cosine",
+        dimensions: parseInt(process.env.OPENAI_EMBEDDING_DIMENSIONS as string),
+        primaryKey: [
+            { name: "amenity_id", type: "text", partition: true },
+            { name: "review_id", type: "uuid" },
+        ],
+        metadataColumns: [
+            { name: "amenity_name", type: "text" },
+            { name: "type", type: "text" },
+            { name: "coords", type: "VECTOR<FLOAT,2>" },
+            { name: "locality", type: "text" },
+            { name: "reviewer_name", type: "text" },
+            { name: "rating", type: "int" },
+            { name: "metadata", type: "text" },
+        ],
+        indices: [
+            { name: "coords", value: "(coords)", options: "{'similarity_function': 'euclidean'}" },
+        ],
+    });
 
-  nativeClientInitialization = CassandraStore.getClient(config).then(client => {
-    nativeClient = client;
-    return client.connect();
-  });
 
+async function findWithinRadiusUsingText(text: string, k: number, radius: number, lat: number, lon: number): Promise<Amenity[]> {
+    const vectorStore = await astra.getVectorStore();
+
+    const filter = { name: "GEO_DISTANCE(coords,?)", operator: "<=", value: [new Float32Array([lat, lon]), radius] };
+    const results = await vectorStore.similaritySearchWithScore(text, k, filter);
+
+    const documents = results.map(result => result[0]);
+    const scores = results.map(result => result[1]);
+
+    const amenitiesMap = processAmenityResults(documents, scores);
+
+    return Array.from(amenitiesMap.values());
 }
 
-initializeCassandraStore();
+async function findWithinRadius(k: number, radius: number, lat: number, lon: number): Promise<Amenity[]> {
+    const nativeClient = await astra.getNativeClient();
 
-async function ensureStoreInitialized(): Promise<void> {
-    try {
-        await vectorStoreInitialization;
-    } catch (error) {
-        console.error("Error initializing CassandraStore:", error);
-        throw error; 
-    }
+    const selectStmt = `SELECT amenity_id ,review_id ,amenity_name, coords,locality, metadata, rating, reviewer_name, text, type 
+                          FROM ${KEYSPACE}.${TABLE}
+                         WHERE geo_distance(coords, ?) <= ?`;
 
-    if (!vectorStore) {
-        throw new Error("Failed to initialize CassandraStore");
-    }
+    const resultSet = await nativeClient.execute(selectStmt, [new Float32Array([lat, lon]), radius], { prepare: true });
+
+    // Transform rows into Document-like objects and create a corresponding array of null scores
+    const documents = resultSet.rows.map(row => ({
+        metadata: {
+            amenity_id: row.amenity_id,
+            review_id: row.review_id,
+            amenity_name: row.amenity_name,
+            type: row.type,
+            coords: [row.coords[0], row.coords[1]],
+            locality: row.locality,
+            reviewer_name: row.reviewer_name,
+            rating: row.rating,
+            metadata: row.metadata,
+        },
+        pageContent: row.text,
+    }));
+    const scores = new Array(resultSet.rows.length).fill(null); // Array of nulls
+
+    // Process the documents and scores to get a map of amenities
+    const amenitiesMap = processAmenityResults(documents, scores);
+
+    return getClosestAmenities(Array.from(amenitiesMap.values()), lat, lon, k);
 }
 
-async function ensureNativeClientInitialized(): Promise<void> {
-    ensureStoreInitialized();  
-
-    try {
-        await nativeClientInitialization;
-    } catch (error) {
-        console.error("Error initializing NativeClient:", error);
-        throw error; 
+function processAmenityResults(documents: Document[], scores: (number | null)[]): Map<string, Amenity> {
+    if (documents.length !== scores.length) {
+        throw new Error("The lengths of documents and scores must be the same.");
     }
 
-    if (!nativeClient) {
-        throw new Error("Failed to initialize NativeClient");
-    }
+    const amenitiesMap: Map<string, Amenity> = new Map<string, Amenity>();
+    documents.forEach((doc, index) => {
+        const score = scores[index];
+        const metadata = doc.metadata;
+        const review: Review = {
+            id: metadata.review_id,
+            reviewer: metadata.reviewer_name,
+            rating: metadata.rating,
+            review_text: doc.pageContent,
+            similarity: score !== null ? score : undefined // Include score if not null
+        };
+
+        const amenityId = metadata.amenity_id;
+
+        if (amenitiesMap.has(amenityId)) {
+            amenitiesMap.get(amenityId)?.reviews.push(review);
+        } else {
+            const amenity: Amenity = {
+                id: amenityId,
+                name: metadata.amenity_name,
+                type: metadata.type,
+                lat: metadata.coords[0],
+                lon: metadata.coords[1],
+                reviews: [review],
+                metadata: JSON.parse(metadata.metadata),
+            };
+            amenitiesMap.set(amenityId, amenity);
+        }
+    });
+    
+    return amenitiesMap;
 }
 
 async function save(amenity: Amenity): Promise<void> {
-    await ensureStoreInitialized();
+    const vectorStore = await astra.getVectorStore();
 
     const docs: Document[] = [];
     for (const review of amenity.reviews) {
@@ -131,91 +165,10 @@ async function save(amenity: Amenity): Promise<void> {
     return vectorStore.addDocuments(docs);
 }
 
-async function findWithinRadiusUsingText(text: string, k: number, radius: number, lat: number, lon: number): Promise<Amenity[]> {
-  await ensureStoreInitialized();
-
-  const filter = { name: "GEO_DISTANCE(coords,?)", operator: "<=", value: [new Float32Array([lat, lon]), radius] };
-  const results = await vectorStore.similaritySearchWithScore(text, k, filter);
-
-  const amenitiesMap = new Map<string, Amenity>();
-
-  for (const result of results) {
-      const document: Document = result[0];
-      const score: number = result[1];
-
-      const review: Review = {
-          id: document.metadata.review_id,
-          reviewer: document.metadata.reviewer_name,
-          rating: document.metadata.rating,
-          review_text: document.pageContent,
-          similarity: score
-      };
-
-      const amenityId = document.metadata.amenity_id;
-
-      if (amenitiesMap.has(amenityId)) {
-          amenitiesMap.get(amenityId)?.reviews.push(review);
-      } else {
-          const amenity: Amenity = {
-              id: amenityId,
-              name: document.metadata.amenity_name,
-              type: document.metadata.type,
-              lat: document.metadata.coords[0],
-              lon: document.metadata.coords[1],
-              reviews: [review],
-              metadata: JSON.parse(document.metadata.metadata),
-          };
-          amenitiesMap.set(amenityId, amenity);
-      }
-  }
-
-  return Array.from(amenitiesMap.values());
-}
-
-async function findWithinRadius(k: number, radius: number, lat: number, lon: number): Promise<Amenity[]> {
-  await ensureNativeClientInitialized();
-
-  const selectStmt = `SELECT amenity_id ,review_id ,amenity_name, coords,locality, metadata, rating, reviewer_name, text, type 
-                        FROM ${KEYSPACE}.${TABLE}
-                       WHERE geo_distance(coords, ?) <= ?`;
-
-  const resultSet = await nativeClient.execute(selectStmt, [new Float32Array([lat, lon]), radius], {prepare: true});
-  const amenitiesMap = new Map<string, Amenity>();
-
-  for (const row of resultSet.rows) {
-      const review: Review = {
-          id: row.review_id,
-          reviewer: row.reviewer_name,
-          rating: row.rating,
-          review_text: row.text
-      };
-
-      const amenityId = row.amenity_id;
-
-      if (amenitiesMap.has(amenityId)) {
-          amenitiesMap.get(amenityId)?.reviews.push(review);
-      } else {
-          const amenity: Amenity = {
-              id: amenityId,
-              name: row.amenity_name,
-              type: row.type,
-              lat: row.coords[0],
-              lon: row.coords[1],
-              reviews: [review],
-              metadata: JSON.parse(row.metadata),
-          };
-          amenitiesMap.set(amenityId, amenity);
-      }
-  }
-
-  const amenities = Array.from(amenitiesMap.values());
-  return getClosestAmenities(amenities, lat, lon, k);
-}
-
 // File content based on this output, which then needed combining from multiple files
 // astra db unload -o csv -url ./amenity_reviews -query 'SELECT amenity_id ,review_id ,amenity_name, coords,locality, metadata, rating, reviewer_name ,\"text\" as c_text,\"type\"  as c_type,\"vector\" as c_vector FROM restsearch.amenity_reviews' -- vectors
 async function load() {
-    await ensureNativeClientInitialized();
+    const nativeClient = await astra.getNativeClient();
 
     const file = './amenity_reviews.csv.gz';
     const fileStream = fs.createReadStream(file).pipe(zlib.createGunzip());
@@ -232,7 +185,7 @@ async function load() {
             escapeChar: '\\',
             step: (result, parser) => {
                 parser.pause();
-                const processPromise = processRow(result.data as RowData).then(() => {
+                const processPromise = processRow(result.data as RowData, nativeClient).then(() => {
                     counter++;
                     if (counter % 100 === 0) {
                         console.log(`Processed ${counter} records`);
@@ -288,7 +241,7 @@ interface RowData {
     c_vector: string;
 }
 
-async function processRow(row: RowData) {
+async function processRow(row: RowData, nativeClient: Client) {
     try {
         const coordsArray = parseVector(row.coords, 2);
         const vectorArray = parseVector(row.c_vector, 1536);
@@ -303,35 +256,6 @@ async function processRow(row: RowData) {
     }
 }
 
-function parseVector(vectorString: string, expectedDims: number): Float32Array {
-    const start = vectorString.indexOf('[') + 1;
-    const end = vectorString.lastIndexOf(']');
-    const vectorSubString = vectorString.substring(start, end);
-
-    if (typeof vectorString === 'undefined' || vectorString === null) {
-        console.error('Vector string is undefined or null');
-        return new Float32Array();
-    }
-
-    try {
-        const vectorValues = vectorSubString.split(',').map(val => parseFloat(val.trim()));
-        if (vectorValues.length !== expectedDims) {
-            throw new Error(`Unexpected number of elements in vector: found ${vectorValues.length}, expected ${expectedDims}`);
-        }
-
-        return new Float32Array(vectorValues);
-    } catch (error) {
-        console.error('===============================================================================');
-        console.error('Vector parsing error:', error);
-        console.error('vectorString:', vectorString);
-        console.error('vectorSubString:', vectorSubString);
-        console.error('===============================================================================');
-        throw error;
-    }
-}
-
 export {
     save, load, findWithinRadiusUsingText, findWithinRadius
 };
-
-

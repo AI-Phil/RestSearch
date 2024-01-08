@@ -41,9 +41,36 @@ function getClosestAmenities(amenities: Amenity[], lat: number, lon: number, clo
       .slice(0, closest_n);
 }
 
+function parseVector(vectorString: string, expectedDims: number): Float32Array {
+  const start = vectorString.indexOf('[') + 1;
+  const end = vectorString.lastIndexOf(']');
+  const vectorSubString = vectorString.substring(start, end);
+
+  if (typeof vectorString === 'undefined' || vectorString === null) {
+      console.error('Vector string is undefined or null');
+      return new Float32Array();
+  }
+
+  try {
+      const vectorValues = vectorSubString.split(',').map(val => parseFloat(val.trim()));
+      if (vectorValues.length !== expectedDims) {
+          throw new Error(`Unexpected number of elements in vector: found ${vectorValues.length}, expected ${expectedDims}`);
+      }
+
+      return new Float32Array(vectorValues);
+  } catch (error) {
+      console.error('===============================================================================');
+      console.error('Vector parsing error:', error);
+      console.error('vectorString:', vectorString);
+      console.error('vectorSubString:', vectorSubString);
+      console.error('===============================================================================');
+      throw error;
+  }
+}
 
 export { 
   validateEnvVariables,
   normalDistribution,
-  getClosestAmenities
+  getClosestAmenities,
+  parseVector
 };
