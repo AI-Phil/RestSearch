@@ -11,6 +11,9 @@ class AstraClientManager {
     constructor(embeddings: OpenAIEmbeddings, config: CassandraLibArgs) {
         this.embeddings = embeddings;
         this.config = config;
+
+        this.vectorStoreInitialization = CassandraStore.fromExistingIndex(this.embeddings, this.config);
+        this.nativeClientInitialization = CassandraStore.getClient(this.config);
     }
 
     async getVectorStore(): Promise<CassandraStore> {
