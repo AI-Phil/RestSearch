@@ -1,6 +1,9 @@
-import { CassandraStore, CassandraLibArgs } from "langchain/vectorstores/cassandra";
+import { CassandraStore, CassandraLibArgs } from "@langchain/community/vectorstores/cassandra";
+// next line awaits https://github.com/langchain-ai/langchainjs/pull/4193
+// import { CassandraClientFactory } from "@langchain/community/utils/cassandra";
+import { CassandraClientFactory } from "./cassandra";
 import { Client } from "cassandra-driver";
-import { OpenAIEmbeddings } from "langchain/embeddings/openai";
+import { OpenAIEmbeddings } from "@langchain/openai";
 
 class AstraClientManager {
     private vectorStoreInitialization: Promise<CassandraStore> | null = null;
@@ -13,7 +16,7 @@ class AstraClientManager {
         this.config = config;
 
         this.vectorStoreInitialization = CassandraStore.fromExistingIndex(this.embeddings, this.config);
-        this.nativeClientInitialization = CassandraStore.getClient(this.config);
+        this.nativeClientInitialization = CassandraClientFactory.getClient(this.config);
     }
 
     async getVectorStore(): Promise<CassandraStore> {
@@ -33,7 +36,7 @@ class AstraClientManager {
 
     async getNativeClient(): Promise<Client> {
         if (!this.nativeClientInitialization) {
-            this.nativeClientInitialization = CassandraStore.getClient(this.config);
+            this.nativeClientInitialization = CassandraClientFactory.getClient(this.config);
         }
 
         try {

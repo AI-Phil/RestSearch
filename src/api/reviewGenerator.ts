@@ -6,8 +6,8 @@ import { save as astraSave } from './astraAmenityReviews';
 import fs from "fs";
 import { v4 as uuidv4 } from 'uuid';
 
-import { ChatOpenAI } from "langchain/chat_models/openai";
-import { SystemMessage, HumanMessage, BaseMessage } from "langchain/schema";
+import { ChatOpenAI } from "@langchain/openai";
+import { SystemMessage, HumanMessage, BaseMessage } from "@langchain/core/messages";
 
 interface ParsedReviews {
     reviews: Review[];

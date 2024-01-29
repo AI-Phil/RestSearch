@@ -2,8 +2,8 @@ import { validateEnvVariables, parseVector } from './common';
 import { SupportedVectorTypes } from "langchain/vectorstores/cassandra";
 import AstraClientManager from './astra';
 import { Client } from "cassandra-driver";
-import { Document } from "langchain/document";
-import { OpenAIEmbeddings } from "langchain/embeddings/openai";
+import { Document } from "@langchain/core/documents";
+import { OpenAIEmbeddings } from "@langchain/openai";
 import { Amenity } from '../schema/Amenity';
 import { Review } from '../schema/Review';
 import { getClosestAmenities } from './common';
@@ -12,7 +12,7 @@ import Papa from 'papaparse';
 import fs from 'fs';
 
 validateEnvVariables([
-    'ASTRA_DB_ID',
+    'ASTRA_DB_ENDPOINT',
     'ASTRA_TOKEN',
     'CASSANDRA_KEYSPACE',
     'OPENAI_EMBEDDING_DIMENSIONS',
@@ -28,7 +28,7 @@ const astra = new AstraClientManager(
         serviceProviderArgs: {
             astra: {
                 token: process.env.ASTRA_TOKEN as string,
-                datacenterID: process.env.ASTRA_DB_ID as string,
+                endpoint: process.env.ASTRA_DB_ENDPOINT as string,
             },
         },
         keyspace: process.env.CASSANDRA_KEYSPACE as string,

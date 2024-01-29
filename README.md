@@ -33,7 +33,7 @@ If you just want to get going and have no need to build or change the code, a Do
 ```
 OPENAI_API_KEY="<your API Key>"
 ASTRA_TOKEN="<your Astra token>"
-ASTRA_DB_ID="<your database identifier>"
+ASTRA_DB_ENDPOINT="<your database endpoint>"
 CASSANDRA_KEYSPACE="<your Astra keyspace>"
 ```
 

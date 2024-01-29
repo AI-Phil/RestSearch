@@ -23,10 +23,12 @@ RUN --mount=type=bind,source=package.json,target=package.json \
     npm install --omit=dev
 
 # This allows local builds to use an experimenal version of LangchainJS
-COPY patches/langchain-vectorstores/*                 node_modules/langchain/vectorstores
-COPY patches/langchain-dist-vectorstores/*            node_modules/langchain/dist/vectorstores
-COPY patches/langchain-community-vectorstores/*       node_modules/@langchain/community/vectorstores
-COPY patches/langchain-community-dist-vectorstores/*  node_modules/@langchain/community/dist/vectorstores
+# COPY patches/langchain-vectorstores/*                 node_modules/langchain/vectorstores
+# COPY patches/langchain-dist-vectorstores/*            node_modules/langchain/dist/vectorstores
+# COPY patches/langchain-community-vectorstores/*       node_modules/@langchain/community/vectorstores
+# COPY patches/langchain-community-dist-vectorstores/*  node_modules/@langchain/community/dist/vectorstores
+# COPY patches/langchain-community-dist-utils/*         node_modules/@langchain/community/dist/utils
+# COPY patches/langchain-community-utils/*              node_modules/@langchain/community/utils
 
 ################################################################################
 # Create a stage for building the application.
@@ -39,10 +41,12 @@ RUN --mount=type=bind,source=package.json,target=package.json \
     npm install
 
 # This allows local builds to use an experimenal version of LangchainJS
-COPY patches/langchain-vectorstores/*                 node_modules/langchain/vectorstores
-COPY patches/langchain-dist-vectorstores/*            node_modules/langchain/dist/vectorstores
-COPY patches/langchain-community-vectorstores/*       node_modules/@langchain/community/vectorstores
-COPY patches/langchain-community-dist-vectorstores/*  node_modules/@langchain/community/dist/vectorstores
+# COPY patches/langchain-vectorstores/*                 node_modules/langchain/vectorstores
+# COPY patches/langchain-dist-vectorstores/*            node_modules/langchain/dist/vectorstores
+# COPY patches/langchain-community-vectorstores/*       node_modules/@langchain/community/vectorstores
+# COPY patches/langchain-community-dist-vectorstores/*  node_modules/@langchain/community/dist/vectorstores
+# COPY patches/langchain-community-dist-utils/*         node_modules/@langchain/community/dist/utils
+# COPY patches/langchain-community-utils/*              node_modules/@langchain/community/utils
 
 # Copy the rest of the source files into the image.
 COPY . .
