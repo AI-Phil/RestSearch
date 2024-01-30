@@ -16,19 +16,19 @@
   "license": "ISC",
   "dependencies": {
     "@types/leaflet": "^1.9.8",
+    "axios": "^1.6.2",
     "cassandra-driver": "^4.7.2",
     "dotenv": "^16.3.1",
+    "dotenv-webpack": "^8.0.1",
     "ejs": "^3.1.9",
     "express": "^4.18.2",
+    "fs": "^0.0.1-security",
     "langchain": "^0.1.9",
     "leaflet": "^1.9.4",
     "openai": "^4.20.1",
+    "papaparse": "^5.4.1",
     "uuid": "^9.0.1",
-    "axios": "^1.6.2",
-    "fs": "^0.0.1-security",
-    "zlib": "^1.0.5",
-    "dotenv-webpack": "^8.0.1",
-    "papaparse": "^5.4.1"
+    "zlib": "^1.0.5"
   },
   "devDependencies": {
     "@types/bootstrap": "^5.2.10",

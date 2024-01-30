@@ -90,20 +90,16 @@ CREATE TABLE restsearch.amenity_reviews (
 
 ### Load Data
 
-While there is a "review" mode that allows you to generate your own reviews, this repository provides some pre-computed reviews in the default location of Dublin, Ireland. This will save you the costs of invoking an LLM to generate these reviews. 
+While there is a "review" mode that allows you to generate your own reviews, this repository provides some pre-computed reviews in the default location of Dublin, Ireland. This will save you the costs of invoking an LLM to generate these reviews. To load data without using the "review" mode, press the "Load Data" button, and then the "Start Load" button:
 
-A built-in data loader is able to load external data, which is provided as `amenity_reviews.csv.gz`. If you wish to make your own version of this data, have a look at `src/api/astraAmenityReviews.ts` for a command line to unload data from an existing database, or you can follow the format example within the `.csv` file itself.
+<img src="readme/load1.png" alt="Start Load"/>
 
-To load data without using the "review" mode, navigate to the `/load` URL path, e.g. [http://localhost:3000/load](http://localhost:3000/load) which will start the load process. In the server console output you should see logs similar to:
+Load progress will update (sample data currently has 3381 records), and then finally be complete:
 
-```
-Processed 100 records
-Processed 200 records
-...
-Processed 3300 records
-CSV file successfully processed
-Total records processed: 3381
-```
+<img src="readme/load2.png" alt="Load Complete"/>
+
+At which point you can click the "Exit Load Mode" button.
+
 
 ## Using the Application
 
@@ -153,7 +149,7 @@ In the current incarnation of the application, all reviews have been filtered to
 
 This section will be less graphical in its explanation, but basically:
 
-1. Enter Review Mode by clicking the "Enter Review Mode" button.
+1. Enter Review Mode by clicking the "Review Mode" button.
 2. Adjust the Selection Parameters, and click on the map. As you click in different places, additional locations may be added to the total.
 3. You can remove all selections by clicking the "Reset Selection" button.
 4. The Review Parameters determine how many reviews will be generated for each of the selected restaurants. It follows a normal distribution; if you want all restaurants to have the same number of reviews, set standard deviation to `0`.

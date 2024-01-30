@@ -167,13 +167,22 @@ async function save(amenity: Amenity): Promise<void> {
 
 // File content based on this output, which then needed combining from multiple files
 // astra db unload -o csv -url ./amenity_reviews -query 'SELECT amenity_id ,review_id ,amenity_name, coords,locality, metadata, rating, reviewer_name ,\"text\" as c_text,\"type\"  as c_type,\"vector\" as c_vector FROM restsearch.amenity_reviews' -- vectors
+
+let loadCounter = 0;
+let loadingComplete = false;
+
+function loadProgress() {
+    return loadingComplete ? -1 : loadCounter;
+}
+
 async function load() {
     const nativeClient = await astra.getNativeClient();
+    loadingComplete = false;
+    loadCounter = 0;
 
     const file = './amenity_reviews.csv.gz';
     const fileStream = fs.createReadStream(file).pipe(zlib.createGunzip());
     const concurrentLimit = 50;
-    let counter = 0;
     const processingQueue: Promise<void>[] = [];
 
     const parsingComplete = new Promise<void>((resolve, reject) => {
@@ -186,9 +195,9 @@ async function load() {
             step: (result, parser) => {
                 parser.pause();
                 const processPromise = processRow(result.data as RowData, nativeClient).then(() => {
-                    counter++;
-                    if (counter % 100 === 0) {
-                        console.log(`Processed ${counter} records`);
+                    loadCounter++;
+                    if (loadCounter % 100 === 0) {
+                        console.log(`Processed ${loadCounter} records`);
                     }
                 });
                 processingQueue.push(processPromise);
@@ -210,7 +219,8 @@ async function load() {
                 // Wait for any remaining queued operations to finish
                 await Promise.all(processingQueue);
                 console.log('CSV file successfully processed');
-                console.log(`Total records processed: ${counter}`);
+                console.log(`Total records processed: ${loadCounter}`);
+                loadingComplete = true;
                 resolve();
             },
             error: (error) => {
@@ -257,5 +267,5 @@ async function processRow(row: RowData, nativeClient: Client) {
 }
 
 export {
-    save, load, findWithinRadiusUsingText, findWithinRadius
+    save, load, loadProgress, findWithinRadiusUsingText, findWithinRadius
 };

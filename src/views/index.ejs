@@ -23,7 +23,9 @@
         <!-- Left Container for Widgets -->
         <div style="padding: 20px;">
             <!-- Toggle Mode Button -->
-            <button id="modeToggle">Enter Review Mode</button>
+            <button id="reviewModeButton">Review Mode</button>
+            <!-- Load Data Button -->
+            <button id="loadModeButton">Load Data</button>
             <hr>
             <!-- Find Widgets -->
             <div id="findWidgets">
@@ -39,6 +41,15 @@
                 </div>
                 <div id="reviewsContainer"></div>
             </div>
+
+            <!-- Load Widgets (initially hidden) -->
+            <div id="loadWidgets" style="display: none;">
+                <h4>Loading Data</h4>
+                <div id="progress-container">
+                    <p id="progress-text">Push button to start loading...</p>
+                </div>
+                <button id="loadDataButton">Start Load</button>
+            </div>                
 
             <!-- Review Widgets (initially hidden) -->
             <div id="reviewWidgets" style="display: none;">

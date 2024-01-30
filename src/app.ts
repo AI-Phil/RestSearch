@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 import express, { Request, Response } from 'express';
 import generateAndWriteReviews from './api/reviewGenerator';
-import { findWithinRadiusUsingText, findWithinRadius, load } from './api/astraAmenityReviews';
+import { findWithinRadiusUsingText, findWithinRadius, load, loadProgress } from './api/astraAmenityReviews';
 import { Amenity } from './schema/Amenity';
 const app = express();
 const port = 3000;
@@ -69,6 +69,11 @@ app.get('/load', async (req: Request, res: Response) => {
         console.error('Load failed:', error);
         res.status(500).send('Load failed');
     }
+});
+
+app.get('/load-progress', (req, res) => {
+    const progress = loadProgress();
+    res.json({ loadedRecords: progress });
 });
 
 app.get('/config', (req, res) => {
