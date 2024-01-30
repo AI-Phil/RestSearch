@@ -1,7 +1,5 @@
 import { CassandraStore, CassandraLibArgs } from "@langchain/community/vectorstores/cassandra";
-// next line awaits https://github.com/langchain-ai/langchainjs/pull/4193
-// import { CassandraClientFactory } from "@langchain/community/utils/cassandra";
-import { CassandraClientFactory } from "./cassandra";
+import { CassandraClientFactory } from "@langchain/community/utils/cassandra";
 import { Client } from "cassandra-driver";
 import { OpenAIEmbeddings } from "@langchain/openai";
 
@@ -40,7 +38,7 @@ class AstraClientManager {
         }
 
         try {
-            return await this.nativeClientInitialization;
+            return await this.nativeClientInitialization!;
         } catch (error) {
             console.error("Error initializing NativeClient:", error);
             this.nativeClientInitialization = null;
